@@ -21,10 +21,8 @@ fun SignupView(
     onNavigateToLogin: () -> Unit,
     onSignUpSuccess: () -> Unit
 ) {
-    // Collect the state from the ViewModel
     val signupState by viewModel.signupState.collectAsState()
 
-    // Delegate to the stateless SignupContent
     SignupContent(
         modifier = modifier,
         signupState = signupState,
@@ -118,7 +116,10 @@ fun SignupContent(
                         email.isNotBlank() && password.isNotBlank() && fullName.isNotBlank()
             ) {
                 if (signupState is SignupState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
                 } else {
                     Text("Sign Up")
                 }
