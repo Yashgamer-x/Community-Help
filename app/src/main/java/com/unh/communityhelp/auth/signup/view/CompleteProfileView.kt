@@ -1,33 +1,14 @@
 package com.unh.communityhelp.auth.signup.view
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,13 +25,14 @@ fun CompleteProfileView(
     onProfileComplete: () -> Unit
 ) {
     AuthScaffold(
-        title = if (viewModel.currentStep == OnboardingStep.GENERAL_INFO) "General Info" else "Expertise & QNA"
+        title = if (viewModel.currentStep == OnboardingStep.GENERAL_INFO) "Profile Setup" else "Expertise"
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             when (viewModel.currentStep) {
                 OnboardingStep.GENERAL_INFO -> {
@@ -73,33 +55,45 @@ fun CompleteProfileView(
 @Composable
 fun GeneralInfoPart(viewModel: CompleteProfileViewModel, onNext: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "Basic Information",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = viewModel.fullName,
             onValueChange = { viewModel.fullName = it },
             label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = viewModel.username,
             onValueChange = { viewModel.username = it },
             label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = viewModel.phoneNumber,
             onValueChange = { viewModel.phoneNumber = it },
             label = { Text("Phone Number") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
-        Spacer(modifier = Modifier.weight(1f))
+
+        Spacer(modifier = Modifier.height(40.dp))
+
         Button(
             onClick = onNext,
             modifier = Modifier.fillMaxWidth(),
             enabled = viewModel.username.isNotBlank() && viewModel.fullName.isNotBlank()
         ) {
-            Text("Next: Expertise")
+            Text("Next: Select Expertise")
         }
     }
 }
@@ -107,46 +101,67 @@ fun GeneralInfoPart(viewModel: CompleteProfileViewModel, onNext: () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExpertiseQNAPart(viewModel: CompleteProfileViewModel, onFinish: () -> Unit) {
-    var skillInput by remember { mutableStateOf("") }
-
     Column {
-        Text("What are your areas of expertise?", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "What is your expertise?",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Text(
+            text = "Select all that apply to you.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline
+        )
 
-        Row(modifier = Modifier.padding(vertical = 8.dp)) {
-            OutlinedTextField(
-                value = skillInput,
-                onValueChange = { skillInput = it },
-                modifier = Modifier.weight(1f),
-                label = { Text("Add Expertise (e.g. Electrician)") }
-            )
-            IconButton (onClick = {
-                if (skillInput.isNotBlank()) {
-                    viewModel.expertiseList.add(skillInput)
-                    skillInput = ""
-                }
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Suggestions FlowRow
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            viewModel.availableExpertise.forEach { skill ->
+                val isSelected = viewModel.expertiseList.contains(skill)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { viewModel.toggleExpertise(skill) },
+                    label = { Text(skill) },
+                    leadingIcon = if (isSelected) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                    } else null
+                )
             }
         }
 
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Your Selection (${viewModel.expertiseList.size})",
+            style = MaterialTheme.typography.titleMedium
+        )
+
         FlowRow(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             viewModel.expertiseList.forEach { skill ->
                 InputChip(
                     selected = true,
-                    onClick = { viewModel.expertiseList.remove(skill) },
+                    onClick = { viewModel.toggleExpertise(skill) },
                     label = { Text(skill) },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp)) }
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        if (viewModel.errorMessage != null) {
+            Text(
+                text = viewModel.errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -154,52 +169,49 @@ fun ExpertiseQNAPart(viewModel: CompleteProfileViewModel, onFinish: () -> Unit) 
         Button(
             onClick = onFinish,
             modifier = Modifier.fillMaxWidth(),
-            enabled = viewModel.expertiseList.isNotEmpty()
+            enabled = viewModel.expertiseList.isNotEmpty() && !viewModel.isSubmitting
         ) {
-            Text("Finish Registration")
+            if (viewModel.isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Finish Registration")
+            }
         }
     }
 }
 
-@SuppressLint("ViewModelConstructorInComposable")
-@Preview(showBackground = true, name = "Step 1: General Info")
-@Composable
-fun PreviewGeneralInfo() {
-    CommunityHelpTheme {
-        val mockViewModel = CompleteProfileViewModel().apply {
-            fullName = "John Doe"
-            username = "johndoe123"
-            phoneNumber = "123-456-7890"
-        }
+// --- PREVIEWS ---
 
-        AuthScaffold(title = "General Info") { padding ->
-            Box(modifier = Modifier.padding(padding).padding(24.dp)) {
-                GeneralInfoPart(
-                    viewModel = mockViewModel,
-                    onNext = {}
-                )
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showBackground = true)
+@Composable
+fun PreviewStep1() {
+    CommunityHelpTheme {
+        val vm = CompleteProfileViewModel()
+        AuthScaffold(title = "Profile Setup") { p ->
+            Box(Modifier.padding(p).padding(24.dp)) {
+                GeneralInfoPart(vm, {})
             }
         }
     }
 }
 
 @SuppressLint("ViewModelConstructorInComposable")
-@Preview(showBackground = true, name = "Step 2: Expertise & QNA")
+@Preview(showBackground = true)
 @Composable
-fun PreviewExpertiseQNA() {
+fun PreviewStep2() {
     CommunityHelpTheme {
-        val mockViewModel = CompleteProfileViewModel().apply {
+        val vm = CompleteProfileViewModel().apply {
             expertiseList.add("Plumbing")
-            expertiseList.add("Electrician")
-            expertiseList.add("Carpentry")
+            currentStep = OnboardingStep.QNA
         }
-
-        AuthScaffold(title = "Expertise & QNA") { padding ->
-            Box(modifier = Modifier.padding(padding).padding(24.dp)) {
-                ExpertiseQNAPart(
-                    viewModel = mockViewModel,
-                    onFinish = {}
-                )
+        AuthScaffold(title = "Expertise") { p ->
+            Box(Modifier.padding(p).padding(24.dp)) {
+                ExpertiseQNAPart(vm, {})
             }
         }
     }
