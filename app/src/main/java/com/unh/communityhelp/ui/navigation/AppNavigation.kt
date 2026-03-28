@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.unh.communityhelp.auth.login.view.LoginView
 import com.unh.communityhelp.auth.signup.view.SignupView
+import com.unh.communityhelp.mainmenu.view.MainMenuView
 
 enum class AppScreen {
     AuthGraph,
@@ -35,7 +36,7 @@ fun AppNavigation() {
         startDestination = AppScreen.AuthGraph.name
     ) {
         authGraph(navController)
-//        mainMenuGraph(navController)
+        mainMenuGraph(navController)
     }
 }
 
@@ -72,10 +73,8 @@ fun NavGraphBuilder.mainMenuGraph(navController: NavHostController){
         startDestination = AppScreen.MainMenu.name,
         route = AppScreen.MainMenuGraph.name
     ){
-        navigation(
-            startDestination = AppScreen.MainMenu.name,
-            route = AppScreen.MainMenuGraph.name
-        ) {
+        composable(route = AppScreen.MainMenu.name){
+            MainMenuView()
         }
     }
 }
