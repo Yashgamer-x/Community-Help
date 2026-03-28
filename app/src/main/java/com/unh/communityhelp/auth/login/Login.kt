@@ -15,6 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.unh.communityhelp.auth.scaffold.AuthScaffold
@@ -25,7 +26,7 @@ fun LoginView(
     onNavigateToSignUp: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
-    AuthScaffold(title = "Welcome Back") { padding ->
+    AuthScaffold(title = "Welcome to Community Help") { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -41,11 +42,22 @@ fun LoginView(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Your Input Fields (Email/Password) would go here
-            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Email") })
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Email") }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation()
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
-
             Button(
                 onClick = onLoginSuccess,
                 modifier = Modifier.fillMaxWidth()

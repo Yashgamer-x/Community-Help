@@ -32,11 +32,10 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        // Start at the Auth Graph container
         startDestination = AppScreen.AuthGraph.name
     ) {
         authGraph(navController)
-        mainMenuGraph(navController)
+//        mainMenuGraph(navController)
     }
 }
 
@@ -77,8 +76,6 @@ fun NavGraphBuilder.mainMenuGraph(navController: NavHostController){
             startDestination = AppScreen.MainMenu.name,
             route = AppScreen.MainMenuGraph.name
         ) {
-            composable(AppScreen.MainMenu.name) {
-            }
         }
     }
 }
