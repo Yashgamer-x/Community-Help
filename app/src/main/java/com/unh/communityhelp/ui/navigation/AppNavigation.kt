@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.unh.communityhelp.auth.login.view.LoginView
+import com.unh.communityhelp.auth.signup.view.CompleteProfileView
 import com.unh.communityhelp.auth.signup.view.SignupView
 import com.unh.communityhelp.mainmenu.view.MainMenuView
 
@@ -15,6 +16,7 @@ enum class AppScreen {
     AuthGraph,
     Login,
     SignUp,
+    CompleteProfile,
 
     MainMenuGraph,
     MainMenu,
@@ -59,6 +61,14 @@ fun NavGraphBuilder.authGraph(navController: NavHostController){
             SignupView(
                 onNavigateToLogin = { navController.popBackStack() },
                 onSignUpSuccess = {
+                    navController.navigate(AppScreen.CompleteProfile.name)
+                }
+            )
+        }
+
+        composable(AppScreen.CompleteProfile.name) {
+            CompleteProfileView(
+                onProfileComplete = {
                     navController.navigate(AppScreen.MainMenuGraph.name) {
                         popUpTo(AppScreen.AuthGraph.name) { inclusive = true }
                     }
