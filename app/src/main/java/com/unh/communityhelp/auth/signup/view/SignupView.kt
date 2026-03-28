@@ -26,8 +26,8 @@ fun SignupView(
     SignupContent(
         modifier = modifier,
         signupState = signupState,
-        onSignUp = { email, password, fullName ->
-            viewModel.signUp(email, password, fullName)
+        onSignUp = { email, password ->
+            viewModel.signUp(email, password)
         },
         onNavigateToLogin = onNavigateToLogin,
         onSignUpSuccess = onSignUpSuccess
@@ -38,11 +38,10 @@ fun SignupView(
 fun SignupContent(
     modifier: Modifier = Modifier,
     signupState: SignupState,
-    onSignUp: (String, String, String) -> Unit,
+    onSignUp: (String, String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onSignUpSuccess: () -> Unit
 ) {
-    var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -66,16 +65,6 @@ fun SignupContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = fullName,
-                onValueChange = { fullName = it },
-                label = { Text("Full Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = signupState !is SignupState.Loading
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = email,
@@ -110,10 +99,10 @@ fun SignupContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { onSignUp(email, password, fullName) },
+                onClick = { onSignUp(email, password) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = signupState !is SignupState.Loading &&
-                        email.isNotBlank() && password.isNotBlank() && fullName.isNotBlank()
+                        email.isNotBlank() && password.isNotBlank()
             ) {
                 if (signupState is SignupState.Loading) {
                     CircularProgressIndicator(
@@ -138,7 +127,7 @@ fun SignupPreview() {
     CommunityHelpTheme {
         SignupContent(
             signupState = SignupState.Idle,
-            onSignUp = { _, _, _ -> },
+            onSignUp = { _, _-> },
             onNavigateToLogin = {},
             onSignUpSuccess = {}
         )
