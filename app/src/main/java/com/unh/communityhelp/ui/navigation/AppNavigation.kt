@@ -84,7 +84,11 @@ fun NavGraphBuilder.mainMenuGraph(navController: NavHostController){
         route = AppScreen.MainMenuGraph.name
     ){
         composable(route = AppScreen.MainMenu.name){
-            MainMenuView(onLogout = {TODO()})
+            MainMenuView(onLogout = {
+                navController.navigate(AppScreen.AuthGraph.name){
+                    popUpTo(AppScreen.MainMenuGraph.name) { inclusive = true }
+                }
+            })
         }
     }
 }
