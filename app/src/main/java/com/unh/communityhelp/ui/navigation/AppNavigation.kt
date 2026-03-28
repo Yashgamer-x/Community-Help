@@ -20,14 +20,6 @@ enum class AppScreen {
 
     MainMenuGraph,
     MainMenu,
-
-    ProfileGraph,
-    Profile,
-    EditProfile,
-
-    PostGraph,
-    Post,
-    CreatePost,
 }
 @Composable
 fun AppNavigation() {
