@@ -1,4 +1,4 @@
-package com.unh.communityhelp.auth.login
+package com.unh.communityhelp.auth.login.view
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,16 +10,30 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.unh.communityhelp.auth.login.viewmodel.LoginState
+import com.unh.communityhelp.auth.login.viewmodel.LoginViewModel
 import com.unh.communityhelp.auth.scaffold.AuthScaffold
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
 fun LoginView(
+    viewModel: LoginViewModel = viewModel(),
     onNavigateToSignUp: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Observe the state from ViewModel
+    val loginState by viewModel.loginState.collectAsState()
+
+    // Handle navigation/side effects when state changes to Success
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) {
+            onLoginSuccess()
+        }
+    }
 
     AuthScaffold(title = "Welcome to Community Help") { padding ->
         Column(
@@ -61,16 +75,29 @@ fun LoginView(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            if (loginState is LoginState.Error) {
+                Text(
+                    text = (loginState as LoginState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             Button(
-                onClick = {
-                    if (email.isNotBlank() && password.isNotBlank()) {
-                        onLoginSuccess()
-                    }
-                },
+                onClick = { viewModel.login(email, password) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = email.isNotBlank() && password.isNotBlank()
             ) {
-                Text("Login")
+                if (loginState is LoginState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Login")
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
