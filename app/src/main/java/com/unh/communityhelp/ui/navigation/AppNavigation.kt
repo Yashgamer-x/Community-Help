@@ -8,7 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.unh.communityhelp.auth.login.view.LoginView
-import com.unh.communityhelp.auth.signup.SignupView
+import com.unh.communityhelp.auth.signup.view.SignupView
 
 enum class AppScreen {
     AuthGraph,
