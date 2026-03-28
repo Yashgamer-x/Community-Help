@@ -9,7 +9,8 @@ import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 @Composable
 fun SignupView(
     modifier: Modifier = Modifier,
-    onNavigateToLogin: ()-> Unit
+    onNavigateToLogin: ()-> Unit,
+    onSignUpSuccess: ()-> Unit
 ){
 
 }
@@ -19,7 +20,8 @@ fun SignupView(
 fun GreetingPreview() {
     CommunityHelpTheme {
         SignupView(
-            onNavigateToLogin = {}
+            onNavigateToLogin = {},
+            onSignUpSuccess = {}
         )
     }
 }

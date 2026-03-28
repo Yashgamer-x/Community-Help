@@ -6,29 +6,79 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
 import com.unh.communityhelp.auth.login.LoginView
 import com.unh.communityhelp.auth.signup.SignupView
 
 enum class AppScreen {
+    AuthGraph,
     Login,
     SignUp,
-}
 
+    MainMenuGraph,
+    MainMenu,
+
+    ProfileGraph,
+    Profile,
+    EditProfile,
+
+    PostGraph,
+    Post,
+    CreatePost,
+}
 @Composable
-fun AppNavigation(){
+fun AppNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = AppScreen.Login.name){
+
+    NavHost(
+        navController = navController,
+        // Start at the Auth Graph container
+        startDestination = AppScreen.AuthGraph.name
+    ) {
         authGraph(navController)
+        mainMenuGraph(navController)
     }
 }
 
 fun NavGraphBuilder.authGraph(navController: NavHostController){
-    composable (AppScreen.Login.name){
-        LoginView(onNavigateToSignUp = {navController.navigate(AppScreen.SignUp.name)})
+    navigation(
+        startDestination = AppScreen.Login.name,
+        route = AppScreen.AuthGraph.name
+    ) {
+        composable(AppScreen.Login.name) {
+            LoginView(
+                onNavigateToSignUp = { navController.navigate(AppScreen.SignUp.name) },
+                onLoginSuccess = {
+                    navController.navigate(AppScreen.MainMenuGraph.name) {
+                        popUpTo(AppScreen.AuthGraph.name) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(AppScreen.SignUp.name) {
+            SignupView(
+                onNavigateToLogin = { navController.popBackStack() },
+                onSignUpSuccess = {
+                    navController.navigate(AppScreen.MainMenuGraph.name) {
+                        popUpTo(AppScreen.AuthGraph.name) { inclusive = true }
+                    }
+                }
+            )
+        }
     }
-    composable(AppScreen.SignUp.name){
-        SignupView(
-            onNavigateToLogin = {navController.navigate(AppScreen.Login.name)}
-        )
+}
+
+fun NavGraphBuilder.mainMenuGraph(navController: NavHostController){
+    navigation(
+        startDestination = AppScreen.MainMenu.name,
+        route = AppScreen.MainMenuGraph.name
+    ){
+        navigation(
+            startDestination = AppScreen.MainMenu.name,
+            route = AppScreen.MainMenuGraph.name
+        ) {
+            composable(AppScreen.MainMenu.name) {
+            }
+        }
     }
 }
