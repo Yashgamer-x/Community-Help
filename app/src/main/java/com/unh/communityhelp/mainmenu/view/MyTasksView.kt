@@ -38,11 +38,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.model.decodeImage
+import com.unh.communityhelp.mainmenu.view.asset.RatingDialog
 import com.unh.communityhelp.mainmenu.viewmodel.MyTasksViewModel
 
 @Composable
@@ -112,17 +115,46 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(tasks) { task ->
+                            var showRatingDialog by remember { mutableStateOf(false) }
+
+                            if (showRatingDialog) {
+                                RatingDialog(
+                                    helperName = "the helper", // In a real app, fetch helper name similar to authorName
+                                    onDismiss = { showRatingDialog = false },
+                                    onConfirm = { rating, comment ->
+                                        viewModel.verifyTaskCompletion(task, rating, comment) {
+                                            showRatingDialog = false
+                                        }
+                                    }
+                                )
+                            }
+
                             HelpTaskCard(
                                 request = task,
                                 actionButton = {
-                                    if (selectedTabIndex == 1) {
+                                    if (selectedTabIndex == 0) { // Created Tab
+                                        // Only show verify button if someone has accepted it AND it's not completed
+                                        if (!task.helperId.isNullOrEmpty() && task.status != "completed") {
+                                            androidx.compose.material3.Button(
+                                                onClick = { showRatingDialog = true },
+                                                modifier = Modifier.padding(bottom = 12.dp, end = 16.dp),
+                                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.primary
+                                                )
+                                            ) {
+                                                Text("Verify Completion")
+                                            }
+                                        } else if (task.status == "completed") {
+                                            Text(
+                                                "Completed",
+                                                color = Color.Gray,
+                                                modifier = Modifier.padding(bottom = 12.dp, end = 16.dp)
+                                            )
+                                        }
+                                    } else if (selectedTabIndex == 1) { // Accepted Tab
                                         OutlinedButton(
                                             onClick = { viewModel.performDrop(task) },
-                                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                                contentColor = MaterialTheme.colorScheme.error
-                                            ),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                                            modifier = Modifier.padding(bottom = 12.dp, end = 16.dp)
+                                            // ... existing drop button styles ...
                                         ) {
                                             Text("Drop Task")
                                         }

@@ -15,11 +15,13 @@ data class HelpRequest(
 
     val authorId: String = "",
     val authorName: String = "Loading...",
+    val helperId: String? = null,
     val title: String = "",
     val description: String = "",
     val image: String = "",
     val location: String = "",
     val category: String = "",
+    val status: String = "open",
     val createdAt: Timestamp? = null
 )
 

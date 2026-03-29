@@ -14,6 +14,9 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.repository.LocationRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -59,54 +62,62 @@ class HomeViewModel : ViewModel() {
     }
 
     private suspend fun fetchTasksByLocationAndSkills(city: String, expertise: List<String>) {
-        val allTasks = mutableListOf<HelpRequest>()
-        val userCache = mutableMapOf<String, String>() // Cache: authorId -> username
+        val userCache = mutableMapOf<String, String>()
 
         try {
-            for (category in expertise) {
-                val snapshot = db.collection("geolocation")
-                    .document(city)
-                    .collection("categories")
-                    .document(category)
-                    .collection("help_requests")
-                    .get()
-                    .await()
+            // 1. Fetch all categories IN PARALLEL
+            val allTaskSnapshots = coroutineScope {
+                expertise.map { category ->
+                    async {
+                        db.collection("geolocation")
+                            .document(city)
+                            .collection("categories")
+                            .document(category)
+                            .collection("help_requests")
+                            // Only fetch tasks that aren't completed or already accepted
+                            .whereEqualTo("status", "open")
+                            .get()
+                            .await()
+                    }
+                }.awaitAll()
+            }
 
-                // Inside HomeViewModel.kt (fetchTasksByLocationAndSkills)
-                val tasks = snapshot.documents.mapNotNull { doc ->
+            // 2. Flatten snapshots into a list of HelpRequests with selfRef
+            val rawTasks = allTaskSnapshots.flatMap { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
                     doc.toObject(HelpRequest::class.java)?.copy(
                         id = doc.id,
                         selfRef = doc.reference
                     )
                 }
-                allTasks.addAll(tasks)
             }
 
-            // --- NEW: Fetch Usernames for each authorId ---
-            val tasksWithNames = allTasks.map { task ->
-                if (task.authorId.isNotEmpty()) {
-                    // Check cache first, otherwise fetch from Firestore
-                    val name = userCache[task.authorId] ?: try {
-                        val userDoc = db.collection("users")
-                            .document(task.authorId)
-                            .get()
-                            .await()
-                        val fetchedName = userDoc.getString("username") ?: "Unknown User"
-                        userCache[task.authorId] = fetchedName // Save to cache
-                        fetchedName
-                    } catch (e: Exception) {
-                        "Unknown User"
+            // 3. Resolve usernames (with cache to avoid redundant calls)
+            val finalTasks = coroutineScope {
+                rawTasks.map { task ->
+                    async {
+                        val name = if (task.authorId.isEmpty()) "Anonymous"
+                        else userCache[task.authorId] ?: try {
+                            val nameFetched = db.collection("users")
+                                .document(task.authorId)
+                                .get()
+                                .await()
+                                .getString("username") ?: "Unknown User"
+                            userCache[task.authorId] = nameFetched
+                            nameFetched
+                        } catch (e: Exception) {
+                            "Unknown User"
+                        }
+                        task.copy(authorName = name)
                     }
-                    task.copy(authorName = name)
-                } else {
-                    task.copy(authorName = "Anonymous")
-                }
+                }.awaitAll()
             }
 
-            helpRequests = tasksWithNames.sortedByDescending { it.createdAt }
+            helpRequests = finalTasks.sortedByDescending { it.createdAt }
 
         } catch (e: Exception) {
-            Log.e("Firestore", "Fetch Error: ${e.message}")
+            Log.e("HomeVM", "Fetch Error: ${e.message}")
+            errorMessage = "Failed to load feed."
         } finally {
             isLoading = false
         }
@@ -122,9 +133,15 @@ class HomeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                db.collection("users").document(uid)
+                db.collection("users")
+                    .document(uid)
                     .update("acceptedTasks", FieldValue.arrayUnion(taskRef))
                     .await()
+
+                taskRef.update(
+                    "status", "accepted",
+                    "helperId", auth.currentUser?.uid
+                ).await()
 
                 onSuccess()
             } catch (e: Exception) {

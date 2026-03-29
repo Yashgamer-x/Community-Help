@@ -96,7 +96,7 @@ class MyTasksViewModel : ViewModel() {
         }.awaitAll().filterNotNull().sortedByDescending { it.createdAt }
     }
 
-    // Correction for the logic above:
+
     fun performDrop(request: HelpRequest) {
         val uid = auth.currentUser?.uid ?: return
         val taskRef = request.selfRef ?: return
@@ -107,6 +107,44 @@ class MyTasksViewModel : ViewModel() {
                 .update("acceptedTasks", FieldValue.arrayRemove(taskRef))
                 .await()
             fetchUserTasks()
+        }
+    }
+
+    fun verifyTaskCompletion(
+        request: HelpRequest,
+        rating: Int,
+        comment: String,
+        onSuccess: () -> Unit
+    ) {
+        val db = Firebase.firestore
+        val taskRef = request.selfRef ?: return
+        val helperId = request.helperId ?: return
+
+        viewModelScope.launch {
+            try {
+                // 1. Save the Review
+                val reviewData = hashMapOf(
+                    "taskId" to request.id,
+                    "reviewerId" to request.authorId,
+                    "helperId" to helperId,
+                    "rating" to rating,
+                    "comment" to comment,
+                    "timestamp" to FieldValue.serverTimestamp()
+                )
+                db.collection("reviews").add(reviewData).await()
+
+                // 2. Update the actual task document status to "completed"
+                taskRef.update("status", "completed").await()
+
+                // 3. Update the helper's stats (Optional but good for their profile)
+                db.collection("users").document(helperId)
+                    .update("completedTasksCount", FieldValue.increment(1))
+
+                fetchUserTasks() // Refresh the list
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("MyTasksVM", "Verification failed: ${e.message}")
+            }
         }
     }
 }

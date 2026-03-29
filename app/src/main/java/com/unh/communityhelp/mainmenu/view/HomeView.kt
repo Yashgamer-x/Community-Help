@@ -1,5 +1,7 @@
 package com.unh.communityhelp.mainmenu.view
 
+import android.Manifest
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +56,8 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.model.decodeImage
 import com.unh.communityhelp.mainmenu.viewmodel.HomeViewModel
@@ -71,13 +76,13 @@ fun HomeView(
     val locationPermissionState = if (isInspectionMode) {
         remember {
             object : PermissionState {
-                override val permission: String = android.Manifest.permission.ACCESS_FINE_LOCATION
+                override val permission: String = Manifest.permission.ACCESS_FINE_LOCATION
                 override val status: PermissionStatus = PermissionStatus.Granted
                 override fun launchPermissionRequest() {}
             }
         }
     } else {
-        rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+        rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
     // FusedLocationProviderClient might also have issues in Preview environments.
@@ -136,11 +141,11 @@ private fun LocationPermissionPrompt(onGrantClick: () -> Unit) {
         Text(
             text = "We need your location permission to show help requests in your current city.",
             style = MaterialTheme.typography.bodyMedium,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
         Spacer(Modifier.height(24.dp))
-        androidx.compose.material3.Button(onClick = onGrantClick) {
+        Button(onClick = onGrantClick) {
             Text("Enable Location Access")
         }
     }
@@ -152,6 +157,7 @@ private fun HomeContent(
     viewModel: HomeViewModel,
     onRefresh: () -> Unit
 ) {
+    val currentUserId = Firebase.auth.currentUser?.uid
     val context = LocalContext.current
     val requests = viewModel.helpRequests
     // PullToRefreshBox handles its own state based on the viewModel's isLoading
@@ -185,10 +191,10 @@ private fun HomeContent(
                 items(requests) { request ->
                     HelpTaskCard(
                         request = request,
+                        currentUserId = currentUserId,
                         onAcceptClick = {
                             viewModel.acceptTask(request) {
-                                // You can add a Toast here or navigate to the "My Tasks" screen
-                                android.widget.Toast.makeText(context, "Task Accepted!", android.widget.Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Task Accepted!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -201,6 +207,7 @@ private fun HomeContent(
 @Composable
 fun HelpTaskCard(
     request: HelpRequest,
+    currentUserId: String?,
     onAcceptClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -221,20 +228,29 @@ fun HelpTaskCard(
                 description = request.description
             )
 
-            // --- Accept Button Section ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                androidx.compose.material3.Button(
-                    onClick = onAcceptClick,
-                    shape = MaterialTheme.shapes.medium,
-                    contentPadding = PaddingValues(horizontal = 24.dp)
+            // Only show the Accept button if:
+            // 1. The user is NOT the author
+            // 2. The task status is "open"
+            if (request.authorId != currentUserId && request.status == "open") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
                 ) {
-                    Text("Accept Task")
+                    Button(
+                        onClick = onAcceptClick,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text("Accept Task")
+                    }
                 }
+            } else if (request.authorId == currentUserId) {
+                Text(
+                    "Your Post",
+                    modifier = Modifier.padding(16.dp).alpha(0.5f),
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -351,7 +367,8 @@ fun HomeViewPreview() {
         Column(Modifier.padding(16.dp)) {
             HelpTaskCard(
                 request = mockRequest,
-                onAcceptClick = {}
+                onAcceptClick = {},
+                currentUserId = "",
             )
         }
     }

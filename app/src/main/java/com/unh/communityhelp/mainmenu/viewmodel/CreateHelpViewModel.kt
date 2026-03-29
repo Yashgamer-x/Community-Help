@@ -87,6 +87,7 @@ class CreateHelpViewModel : ViewModel() {
             "location" to locationAddress,
             "image" to imageString,
             "category" to selectedCategory.name,
+            "status" to "open",
             "createdAt" to FieldValue.serverTimestamp()
         )
 
@@ -115,5 +116,12 @@ class CreateHelpViewModel : ViewModel() {
         }
     }
 
-    fun clearImage() { capturedImage = null }
+    fun resetForm() {
+        capturedImage = null
+        statusMessage = ""
+    }
+
+    fun clearImage() {
+        capturedImage = null
+    }
 }

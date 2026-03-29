@@ -151,9 +151,10 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
                     title = title,
                     description = description,
                     onSuccess = {
-                        Toast.makeText(context, viewModel.statusMessage, Toast.LENGTH_SHORT).show()
-                        title = ""; description = ""
-                        viewModel.clearImage()
+                        Toast.makeText(context, "Post successful!", Toast.LENGTH_SHORT).show()
+                        title = ""
+                        description = ""
+                        viewModel.resetForm()
                     }
                 )
             },
