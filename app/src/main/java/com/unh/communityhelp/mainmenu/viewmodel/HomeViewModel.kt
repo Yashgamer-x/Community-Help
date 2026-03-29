@@ -17,9 +17,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class HomeViewModel : ViewModel() {
-    private val db = Firebase.firestore
-    private val auth = Firebase.auth
-
+    private val db by lazy { Firebase.firestore }
+    private val auth by lazy { Firebase.auth }
     var helpRequests by mutableStateOf<List<HelpRequest>>(emptyList())
     var isLoading by mutableStateOf(false)
     var currentCity by mutableStateOf("")

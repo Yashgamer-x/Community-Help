@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
@@ -61,16 +64,35 @@ fun HomeView(
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val locationPermissionState = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    val isInspectionMode = LocalInspectionMode.current
+    
+    // Accompanist's rememberPermissionState requires an Activity context, which is not available in Previews.
+    // We provide a mock state when in inspection mode to prevent crashes.
+    val locationPermissionState = if (isInspectionMode) {
+        remember {
+            object : PermissionState {
+                override val permission: String = android.Manifest.permission.ACCESS_FINE_LOCATION
+                override val status: PermissionStatus = PermissionStatus.Granted
+                override fun launchPermissionRequest() {}
+            }
+        }
+    } else {
+        rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    // FusedLocationProviderClient might also have issues in Preview environments.
+    val fusedLocationClient = remember { 
+        if (isInspectionMode) null else LocationServices.getFusedLocationProviderClient(context) 
+    }
 
     // Helper function to trigger refresh
     val onRefresh = {
-        viewModel.refreshHomeData(context, fusedLocationClient)
+        fusedLocationClient?.let { viewModel.refreshHomeData(context, it) }
     }
 
     LaunchedEffect(locationPermissionState.status.isGranted) {
-        if (locationPermissionState.status.isGranted) {
+        // Avoid triggering VM data refresh in Preview to prevent Firebase initialization errors
+        if (locationPermissionState.status.isGranted && !isInspectionMode) {
             onRefresh()
         }
     }
@@ -79,7 +101,7 @@ fun HomeView(
         when {
             locationPermissionState.status.isGranted -> {
                 // Pass the refresh function to the content
-                HomeContent(viewModel, onRefresh)
+                HomeContent(viewModel, onRefresh as () -> Unit)
             }
             else -> {
                 LocationPermissionPrompt(
