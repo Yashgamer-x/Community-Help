@@ -32,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unh.communityhelp.auth.scaffold.AuthScaffold
+import com.unh.communityhelp.auth.signup.category.Expertise
 import com.unh.communityhelp.auth.signup.viewmodel.CompleteProfileViewModel
 import com.unh.communityhelp.auth.signup.viewmodel.OnboardingStep
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
@@ -137,14 +138,20 @@ fun ExpertiseQNAPart(viewModel: CompleteProfileViewModel, onFinish: () -> Unit) 
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            viewModel.availableExpertise.forEach { skill ->
-                val isSelected = viewModel.expertiseList.contains(skill)
+            Expertise.entries.forEach { skill ->
+                val isSelected = viewModel.expertiseList.contains(skill.name)
                 FilterChip(
                     selected = isSelected,
-                    onClick = { viewModel.toggleExpertise(skill) },
-                    label = { Text(skill) },
+                    onClick = { viewModel.toggleExpertise(skill.name) },
+                    label = { Text(skill.name) },
                     leadingIcon = if (isSelected) {
-                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                        {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     } else null
                 )
             }
@@ -223,7 +230,7 @@ fun PreviewStep1() {
 fun PreviewStep2() {
     CommunityHelpTheme {
         val vm = CompleteProfileViewModel().apply {
-            expertiseList.add("Plumbing")
+            expertiseList.add("PLUMBING")
             currentStep = OnboardingStep.QNA
         }
         AuthScaffold(title = "Expertise") { p ->
