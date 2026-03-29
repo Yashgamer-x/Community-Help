@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
@@ -24,52 +26,140 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.LocationServices
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.model.decodeImage
 import com.unh.communityhelp.mainmenu.viewmodel.HomeViewModel
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeView(
     viewModel: HomeViewModel = viewModel()
 ) {
-    // Observe the list from our ViewModel
-    val requests = viewModel.helpRequests
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val locationPermissionState = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+
+    // Helper function to trigger refresh
+    val onRefresh = {
+        viewModel.refreshHomeData(context, fusedLocationClient)
+    }
+
+    LaunchedEffect(locationPermissionState.status.isGranted) {
+        if (locationPermissionState.status.isGranted) {
+            onRefresh()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (viewModel.isLoading) {
-            // Show a loader while fetching from Firestore
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (requests.isEmpty()) {
-            // Show a message if no tasks are found in the user's city/expertise
-            Text(
-                text = "No help requests found in your area.",
-                modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        when {
+            locationPermissionState.status.isGranted -> {
+                // Pass the refresh function to the content
+                HomeContent(viewModel, onRefresh)
+            }
+            else -> {
+                LocationPermissionPrompt(
+                    onGrantClick = { locationPermissionState.launchPermissionRequest() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationPermissionPrompt(onGrantClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Find Tasks Near You",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "We need your location permission to show help requests in your current city.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        Spacer(Modifier.height(24.dp))
+        androidx.compose.material3.Button(onClick = onGrantClick) {
+            Text("Enable Location Access")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeContent(
+    viewModel: HomeViewModel,
+    onRefresh: () -> Unit
+) {
+    val requests = viewModel.helpRequests
+    // PullToRefreshBox handles its own state based on the viewModel's isLoading
+
+    PullToRefreshBox(
+        isRefreshing = viewModel.isLoading,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (requests.isEmpty() && !viewModel.isLoading) {
+            // Use a verticalScroll modifier here so the pull-to-refresh gesture works
+            // even when the list is empty
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No help requests found in ${viewModel.currentCity}.\nSwipe down to refresh.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Now passing the real HelpRequest object to each card
                 items(requests) { request ->
                     HelpTaskCard(request = request)
                 }
