@@ -22,7 +22,7 @@ fun Timestamp.toIso8601String(): String {
     sdf.timeZone = TimeZone.getTimeZone("UTC")
     return sdf.format(this.toDate())
 }
-data class PointsResponse(val points: Long)
+data class PointsResponse(val totalPoints: Long)
 
 interface PointsApi {
     @POST("estimate-points")

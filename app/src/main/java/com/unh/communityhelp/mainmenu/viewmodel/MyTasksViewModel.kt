@@ -146,8 +146,8 @@ class MyTasksViewModel : ViewModel() {
                     val response = pointsApi.calculatePoints(apiRequest)
                     Log.d("MyTasksVM", "API Points Success: ${response.body()}")
                     if (response.isSuccessful) {
-                        Log.d("MyTasksVM", "API Points Success: ${response.body()?.points}")
-                        pointsAwarded = response.body()?.points ?: 10L
+                        Log.d("MyTasksVM", "API Points Success: ${response.body()?.totalPoints}")
+                        pointsAwarded = response.body()?.totalPoints ?: 10L
                     }
                 } catch (e: Exception) {
                     Log.e("MyTasksVM", "API Points Error: ${e.message}")
