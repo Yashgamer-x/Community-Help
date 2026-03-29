@@ -1,5 +1,6 @@
 package com.unh.communityhelp.mainmenu.view
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -111,7 +113,21 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
                     ) {
                         items(tasks) { task ->
                             HelpTaskCard(
-                                request = task
+                                request = task,
+                                actionButton = {
+                                    if (selectedTabIndex == 1) {
+                                        OutlinedButton(
+                                            onClick = { viewModel.performDrop(task) },
+                                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error
+                                            ),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                                            modifier = Modifier.padding(bottom = 12.dp, end = 16.dp)
+                                        ) {
+                                            Text("Drop Task")
+                                        }
+                                    }
+                                }
                             )
                         }
                     }
@@ -123,8 +139,9 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
 
 @Composable
 private fun HelpTaskCard(
+    modifier: Modifier = Modifier,
     request: HelpRequest,
-    modifier: Modifier = Modifier
+    actionButton: @Composable () -> Unit = {},
 ) {
     val imageBitmap = remember(request.image) { request.decodeImage() }
 
@@ -142,6 +159,9 @@ private fun HelpTaskCard(
                 location = request.location,
                 description = request.description
             )
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                actionButton()
+            }
         }
     }
 }

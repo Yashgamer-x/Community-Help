@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import kotlinx.coroutines.async
@@ -68,21 +69,18 @@ class MyTasksViewModel : ViewModel() {
             }
         }.awaitAll().filterNotNull()
 
-        // 2. Identify unique author IDs to avoid redundant fetches
         val authorCache = mutableMapOf<String, String>()
 
-        // 3. Process each task and resolve the username
         taskSnapshots.map { snapshot ->
             async {
-                val task = snapshot.toObject(HelpRequest::class.java)?.copy(id = snapshot.id)
+                val task = snapshot.toObject(HelpRequest::class.java)?.copy(
+                    id = snapshot.id,
+                    selfRef = snapshot.reference
+                )
 
                 if (task != null && task.authorId.isNotEmpty()) {
-                    // Check if we already fetched this username in this batch
                     val username = authorCache[task.authorId] ?: try {
-                        val userDoc = db.collection("users")
-                            .document(task.authorId)
-                            .get()
-                            .await()
+                        val userDoc = db.collection("users").document(task.authorId).get().await()
                         val name = userDoc.getString("username") ?: "Unknown User"
                         authorCache[task.authorId] = name
                         name
@@ -90,12 +88,25 @@ class MyTasksViewModel : ViewModel() {
                         "Unknown User"
                     }
 
-                    // Map the name back to the HelpRequest
                     task.copy(authorName = username)
                 } else {
                     task
                 }
             }
         }.awaitAll().filterNotNull().sortedByDescending { it.createdAt }
+    }
+
+    // Correction for the logic above:
+    fun performDrop(request: HelpRequest) {
+        val uid = auth.currentUser?.uid ?: return
+        val taskRef = request.selfRef ?: return
+
+        viewModelScope.launch {
+            db.collection("users")
+                .document(uid)
+                .update("acceptedTasks", FieldValue.arrayRemove(taskRef))
+                .await()
+            fetchUserTasks()
+        }
     }
 }

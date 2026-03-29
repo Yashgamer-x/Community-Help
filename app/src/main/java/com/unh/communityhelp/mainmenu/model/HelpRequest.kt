@@ -5,9 +5,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.Exclude
+import android.util.Base64
+import android.graphics.BitmapFactory
 
 data class HelpRequest(
+    // 1. Move selfRef to the constructor so .copy() works properly
     @get:Exclude val id: String = "",
+    @get:Exclude val selfRef: DocumentReference? = null,
+
     val authorId: String = "",
     val authorName: String = "Loading...",
     val title: String = "",
@@ -15,19 +20,14 @@ data class HelpRequest(
     val image: String = "",
     val location: String = "",
     val category: String = "",
-    val createdAt: Timestamp? = null,
-    // THE SELF-REFERENCE FIELD
-    @get:Exclude var selfRef: DocumentReference? = null
+    val createdAt: Timestamp? = null
 )
-
 
 fun HelpRequest.decodeImage(): ImageBitmap? {
     if (image.isBlank()) return null
     return try {
-        val decodedBytes = android.util.Base64.decode(image, android.util.Base64.DEFAULT)
-        android.graphics
-            .BitmapFactory
-            .decodeByteArray(decodedBytes, 0, decodedBytes.size)?.asImageBitmap()
+        val decodedBytes = Base64.decode(image, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)?.asImageBitmap()
     } catch (e: Exception) {
         null
     }
