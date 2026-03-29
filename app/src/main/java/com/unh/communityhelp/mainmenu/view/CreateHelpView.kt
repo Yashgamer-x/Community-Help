@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
@@ -45,6 +46,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -96,7 +99,11 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
             onValueChange = { description = it },
             label = { Text("Detailed Description") },
             modifier = Modifier.fillMaxWidth(),
-            minLines = 3
+            minLines = 3,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Default,
+                capitalization = KeyboardCapitalization.Sentences
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
