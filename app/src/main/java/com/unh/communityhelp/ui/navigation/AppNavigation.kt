@@ -20,14 +20,6 @@ enum class AppScreen {
 
     MainMenuGraph,
     MainMenu,
-
-    ProfileGraph,
-    Profile,
-    EditProfile,
-
-    PostGraph,
-    Post,
-    CreatePost,
 }
 @Composable
 fun AppNavigation() {
@@ -84,7 +76,11 @@ fun NavGraphBuilder.mainMenuGraph(navController: NavHostController){
         route = AppScreen.MainMenuGraph.name
     ){
         composable(route = AppScreen.MainMenu.name){
-            MainMenuView()
+            MainMenuView(onLogout = {
+                navController.navigate(AppScreen.AuthGraph.name){
+                    popUpTo(AppScreen.MainMenuGraph.name) { inclusive = true }
+                }
+            })
         }
     }
 }

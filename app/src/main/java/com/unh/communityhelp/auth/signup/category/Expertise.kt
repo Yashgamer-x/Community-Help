@@ -13,7 +13,4 @@ enum class Expertise(
     TECHHELP("techhelp"),
     PLUMBING("plumbing"),
     PORTER("porter")
-
-
-
 }
