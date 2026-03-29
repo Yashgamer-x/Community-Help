@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,9 +23,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,9 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -55,6 +56,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.unh.communityhelp.mainmenu.view.asset.LocationSection
 import com.unh.communityhelp.mainmenu.viewmodel.CreateHelpViewModel
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
@@ -108,24 +110,28 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = { /* TODO: Get Current Location */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.MyLocation, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Use Current Location")
-        }
+        LocationSection(
+            viewModel = viewModel,
+            context = LocalContext.current
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /* TODO: Submit to Firestore */ },
+            onClick = { /* Call your submit function here */ },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
-            enabled = title.isNotBlank() && description.isNotBlank() && viewModel.capturedImage != null
+            enabled = title.isNotBlank() && description.isNotBlank() &&
+                    viewModel.capturedImage != null && !viewModel.isSubmitting
         ) {
-            Text("Post Help Request")
+            if (viewModel.isSubmitting) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else {
+                Text("Post Help Request")
+            }
         }
     }
 }

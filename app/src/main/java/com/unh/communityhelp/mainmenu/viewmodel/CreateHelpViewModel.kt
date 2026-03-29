@@ -13,6 +13,7 @@ class CreateHelpViewModel: ViewModel() {
     // Location States
     var locationAddress by mutableStateOf("")
     var isFetchingLocation by mutableStateOf(false)
+    var isSubmitting by mutableStateOf(false)
 
     // Reset function if they want to retake it
     fun clearImage() {
