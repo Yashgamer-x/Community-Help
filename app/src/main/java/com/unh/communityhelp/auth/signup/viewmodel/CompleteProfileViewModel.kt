@@ -62,8 +62,9 @@ class CompleteProfileViewModel : ViewModel() {
             "fullName" to fullName,
             "username" to username,
             "phoneNumber" to phoneNumber,
-            "expertiseList" to expertiseList.toList(), // Convert SnapShotStateList to standard List
-            "createdAt" to com.google.firebase.Timestamp.now()
+            "expertiseList" to expertiseList.toList(),
+            "createdAt" to com.google.firebase.Timestamp.now(),
+            "points" to 0
         )
 
         viewModelScope.launch {
