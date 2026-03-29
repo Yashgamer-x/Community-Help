@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,7 +64,7 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Created", "Accepted")
 
-    // Fetch data whenever this screen is opened
+    // Automatically refresh data when screen is opened
     LaunchedEffect(Unit) {
         viewModel.fetchUserTasks()
     }
@@ -72,8 +75,6 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.primary,
             indicator = {
-                // The new API handles the indicator automatically,
-                // but you can still customize it here if needed.
                 TabRowDefaults.PrimaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
                     width = 64.dp,
@@ -89,7 +90,6 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleSmall,
-                            // The new API doesn't auto-bold, so we do it manually
                             fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -101,71 +101,100 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
             if (viewModel.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                val tasks = if (selectedTabIndex == 0) viewModel.createdTasks else viewModel.acceptedTasks
+                // Determine which list to show
+                val tasks = when (selectedTabIndex) {
+                    0 -> viewModel.createdTasks
+                    else -> viewModel.acceptedTasks
+                }
 
                 if (tasks.isEmpty()) {
-                    Text(
-                        "No ${tabs[selectedTabIndex].lowercase()} tasks found.",
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    EmptyStateMessage(tabs[selectedTabIndex])
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(tasks) { task ->
-                            var showRatingDialog by remember { mutableStateOf(false) }
-
-                            if (showRatingDialog) {
-                                RatingDialog(
-                                    helperName = "the helper", // In a real app, fetch helper name similar to authorName
-                                    onDismiss = { showRatingDialog = false },
-                                    onConfirm = { rating, comment ->
-                                        viewModel.verifyTaskCompletion(task, rating, comment) {
-                                            showRatingDialog = false
-                                        }
-                                    }
-                                )
-                            }
-
-                            HelpTaskCard(
-                                request = task,
-                                actionButton = {
-                                    if (selectedTabIndex == 0) { // Created Tab
-                                        // Only show verify button if someone has accepted it AND it's not completed
-                                        if (!task.helperId.isNullOrEmpty() && task.status != "completed") {
-                                            androidx.compose.material3.Button(
-                                                onClick = { showRatingDialog = true },
-                                                modifier = Modifier.padding(bottom = 12.dp, end = 16.dp),
-                                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.primary
-                                                )
-                                            ) {
-                                                Text("Verify Completion")
-                                            }
-                                        } else if (task.status == "completed") {
-                                            Text(
-                                                "Completed",
-                                                color = Color.Gray,
-                                                modifier = Modifier.padding(bottom = 12.dp, end = 16.dp)
-                                            )
-                                        }
-                                    } else if (selectedTabIndex == 1) { // Accepted Tab
-                                        OutlinedButton(
-                                            onClick = { viewModel.performDrop(task) },
-                                            // ... existing drop button styles ...
-                                        ) {
-                                            Text("Drop Task")
-                                        }
-                                    }
-                                }
+                        items(tasks, key = { it.id }) { task ->
+                            TaskItemRow(
+                                task = task,
+                                tabIndex = selectedTabIndex,
+                                viewModel = viewModel
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TaskItemRow(
+    task: HelpRequest,
+    tabIndex: Int,
+    viewModel: MyTasksViewModel
+) {
+    var showRatingDialog by remember { mutableStateOf(false) }
+
+    if (showRatingDialog) {
+        RatingDialog(
+            // In a production app, you'd fetch the helper's username
+            // from the helperId just like you do for the authorName.
+            helperName = "the helper",
+            onDismiss = { showRatingDialog = false },
+            onConfirm = { rating, comment ->
+                viewModel.verifyTaskCompletion(task, rating, comment) {
+                    showRatingDialog = false
+                }
+            }
+        )
+    }
+
+    HelpTaskCard(
+        request = task,
+        actionButton = {
+            when (tabIndex) {
+                0 -> { // Created Tab
+                    if (!task.helperId.isNullOrEmpty() && task.status != "completed") {
+                        Button(
+                            onClick = { showRatingDialog = true },
+                            modifier = Modifier.padding(bottom = 12.dp, end = 16.dp)
+                        ) {
+                            Text("Verify Completion")
+                        }
+                    }
+                }
+                1 -> {
+                    if (task.status != "completed") {
+                        OutlinedButton(
+                            onClick = { viewModel.performDrop(task) },
+                            modifier = Modifier.padding(bottom = 12.dp, end = 16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Drop Task")
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun BoxScope.EmptyStateMessage(tabName: String) {
+    Column(
+        modifier = Modifier.align(Alignment.Center),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "No ${tabName.lowercase()} tasks found.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray
+        )
     }
 }
 

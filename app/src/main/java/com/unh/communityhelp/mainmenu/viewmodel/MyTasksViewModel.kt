@@ -42,7 +42,7 @@ class MyTasksViewModel : ViewModel() {
                 // 3. Run both fetch operations in parallel
                 // Use coroutineScope to allow the use of 'async'
                 coroutineScope {
-                    val createdDeferred = async { fetchTasksFromRefs(createdRefs) }
+                    val createdDeferred =  async { fetchTasksFromRefs(createdRefs) }
                     val acceptedDeferred = async { fetchTasksFromRefs(acceptedRefs) }
 
                     createdTasks = createdDeferred.await()
@@ -116,16 +116,16 @@ class MyTasksViewModel : ViewModel() {
         comment: String,
         onSuccess: () -> Unit
     ) {
-        val db = Firebase.firestore
         val taskRef = request.selfRef ?: return
         val helperId = request.helperId ?: return
+        val authorId = request.authorId
 
         viewModelScope.launch {
             try {
-                // 1. Save the Review
+                // Save the Review (Do this first so the data exists somewhere!)
                 val reviewData = hashMapOf(
                     "taskId" to request.id,
-                    "reviewerId" to request.authorId,
+                    "reviewerId" to authorId,
                     "helperId" to helperId,
                     "rating" to rating,
                     "comment" to comment,
@@ -133,17 +133,25 @@ class MyTasksViewModel : ViewModel() {
                 )
                 db.collection("reviews").add(reviewData).await()
 
-                // 2. Update the actual task document status to "completed"
-                taskRef.update("status", "completed").await()
+                // Remove reference from Author's profile
+                db.collection("users").document(authorId)
+                    .update("createdTasks", FieldValue.arrayRemove(taskRef)).await()
 
-                // 3. Update the helper's stats (Optional but good for their profile)
+                // Remove reference from Helper's profile
                 db.collection("users").document(helperId)
-                    .update("completedTasksCount", FieldValue.increment(1))
+                    .update("acceptedTasks", FieldValue.arrayRemove(taskRef)).await()
 
-                fetchUserTasks() // Refresh the list
+                // Update Helper's stats (Since the task is being deleted, update stats now)
+                db.collection("users").document(helperId)
+                    .update("completedTasksCount", FieldValue.increment(1)).await()
+
+                // DELETE the actual task document from the geolocation collection
+                taskRef.delete().await()
+
+                fetchUserTasks() // Refresh local state
                 onSuccess()
             } catch (e: Exception) {
-                Log.e("MyTasksVM", "Verification failed: ${e.message}")
+                Log.e("MyTasksVM", "Hard Delete failed: ${e.message}")
             }
         }
     }
