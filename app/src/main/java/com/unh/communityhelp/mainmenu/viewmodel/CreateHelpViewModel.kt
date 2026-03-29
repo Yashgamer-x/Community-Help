@@ -10,6 +10,10 @@ class CreateHelpViewModel: ViewModel() {
     // Stores the captured image
     var capturedImage by mutableStateOf<Bitmap?>(null)
 
+    // Location States
+    var locationAddress by mutableStateOf("")
+    var isFetchingLocation by mutableStateOf(false)
+
     // Reset function if they want to retake it
     fun clearImage() {
         capturedImage = null
