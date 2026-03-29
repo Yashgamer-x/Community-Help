@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.repository.LocationRepository
@@ -71,8 +72,12 @@ class HomeViewModel : ViewModel() {
                     .get()
                     .await()
 
+                // Inside HomeViewModel.kt (fetchTasksByLocationAndSkills)
                 val tasks = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(HelpRequest::class.java)?.copy(id = doc.id)
+                    doc.toObject(HelpRequest::class.java)?.copy(
+                        id = doc.id,
+                        selfRef = doc.reference
+                    )
                 }
                 allTasks.addAll(tasks)
             }
@@ -82,7 +87,10 @@ class HomeViewModel : ViewModel() {
                 if (task.authorId.isNotEmpty()) {
                     // Check cache first, otherwise fetch from Firestore
                     val name = userCache[task.authorId] ?: try {
-                        val userDoc = db.collection("users").document(task.authorId).get().await()
+                        val userDoc = db.collection("users")
+                            .document(task.authorId)
+                            .get()
+                            .await()
                         val fetchedName = userDoc.getString("username") ?: "Unknown User"
                         userCache[task.authorId] = fetchedName // Save to cache
                         fetchedName
@@ -101,6 +109,27 @@ class HomeViewModel : ViewModel() {
             Log.e("Firestore", "Fetch Error: ${e.message}")
         } finally {
             isLoading = false
+        }
+    }
+
+
+    fun acceptTask(request: HelpRequest, onSuccess: () -> Unit) {
+        val uid = auth.currentUser?.uid ?: return
+        val db = Firebase.firestore
+
+        // Use the self-contained reference
+        val taskRef = request.selfRef ?: return
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(uid)
+                    .update("acceptedTasks", FieldValue.arrayUnion(taskRef))
+                    .await()
+
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("HomeVM", "Accept Failed: ${e.message}")
+            }
         }
     }
 }

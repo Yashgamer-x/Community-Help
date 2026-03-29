@@ -152,6 +152,7 @@ private fun HomeContent(
     viewModel: HomeViewModel,
     onRefresh: () -> Unit
 ) {
+    val context = LocalContext.current
     val requests = viewModel.helpRequests
     // PullToRefreshBox handles its own state based on the viewModel's isLoading
 
@@ -182,7 +183,15 @@ private fun HomeContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(requests) { request ->
-                    HelpTaskCard(request = request)
+                    HelpTaskCard(
+                        request = request,
+                        onAcceptClick = {
+                            viewModel.acceptTask(request) {
+                                // You can add a Toast here or navigate to the "My Tasks" screen
+                                android.widget.Toast.makeText(context, "Task Accepted!", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -192,9 +201,9 @@ private fun HomeContent(
 @Composable
 fun HelpTaskCard(
     request: HelpRequest,
+    onAcceptClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Memoize the bitmap to prevent redundant decoding during recomposition
     val imageBitmap = remember(request.image) { request.decodeImage() }
 
     Card(
@@ -205,14 +214,29 @@ fun HelpTaskCard(
     ) {
         Column {
             UserHeader(userName = request.authorName)
-
             TaskImage(bitmap = imageBitmap)
-
             TaskDetails(
                 title = request.title,
                 location = request.location,
                 description = request.description
             )
+
+            // --- Accept Button Section ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                androidx.compose.material3.Button(
+                    onClick = onAcceptClick,
+                    shape = MaterialTheme.shapes.medium,
+                    contentPadding = PaddingValues(horizontal = 24.dp)
+                ) {
+                    Text("Accept Task")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -325,7 +349,10 @@ fun HomeViewPreview() {
         )
 
         Column(Modifier.padding(16.dp)) {
-            HelpTaskCard(request = mockRequest)
+            HelpTaskCard(
+                request = mockRequest,
+                onAcceptClick = {}
+            )
         }
     }
 }

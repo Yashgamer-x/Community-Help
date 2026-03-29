@@ -3,16 +3,21 @@ package com.unh.communityhelp.mainmenu.model
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.Exclude
 
 data class HelpRequest(
-    val id: String = "",
+    @get:Exclude val id: String = "",
     val authorId: String = "",
+    val authorName: String = "Loading...",
     val title: String = "",
     val description: String = "",
-    val image: String = "", // Matches your (string) image field
+    val image: String = "",
     val location: String = "",
-    var authorName: String = "Loading...",
-    val createdAt: Timestamp? = null
+    val category: String = "",
+    val createdAt: Timestamp? = null,
+    // THE SELF-REFERENCE FIELD
+    @get:Exclude var selfRef: DocumentReference? = null
 )
 
 
