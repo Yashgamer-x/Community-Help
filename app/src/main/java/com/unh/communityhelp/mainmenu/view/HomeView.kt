@@ -1,5 +1,7 @@
 package com.unh.communityhelp.mainmenu.view
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,95 +18,186 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.unh.communityhelp.mainmenu.model.HelpRequest
+import com.unh.communityhelp.mainmenu.model.decodeImage
+import com.unh.communityhelp.mainmenu.viewmodel.HomeViewModel
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
-fun HomeView() {
-    val dummyTasks = listOf(1, 2, 3, 4, 5)
+fun HomeView(
+    viewModel: HomeViewModel = viewModel()
+) {
+    // Observe the list from our ViewModel
+    val requests = viewModel.helpRequests
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(dummyTasks) {
-            HelpTaskCard()
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (viewModel.isLoading) {
+            // Show a loader while fetching from Firestore
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        } else if (requests.isEmpty()) {
+            // Show a message if no tasks are found in the user's city/expertise
+            Text(
+                text = "No help requests found in your area.",
+                modifier = Modifier.align(Alignment.Center),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Now passing the real HelpRequest object to each card
+                items(requests) { request ->
+                    HelpTaskCard(request = request)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun HelpTaskCard() {
+fun HelpTaskCard(
+    request: HelpRequest,
+    modifier: Modifier = Modifier
+) {
+    // Memoize the bitmap to prevent redundant decoding during recomposition
+    val imageBitmap = remember(request.image) { request.decodeImage() }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            // User Header
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = Color.LightGray) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.padding(4.dp))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Username", style = MaterialTheme.typography.titleMedium)
-            }
+            UserHeader(userName = "Helper Needed") // You can pass request.authorName if you add it later
 
-            // Image Content
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(220.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("Help Subject Image", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            TaskImage(bitmap = imageBitmap)
 
-            // Details
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Emergency Pipe Leak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            TaskDetails(
+                title = request.title,
+                location = request.location,
+                description = request.description
+            )
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(4.dp))
+@Composable
+private fun UserHeader(userName: String) {
+    Row(
+        modifier = Modifier.padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.padding(6.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(userName, style = MaterialTheme.typography.titleSmall)
+    }
+}
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+@Composable
+private fun TaskImage(bitmap: ImageBitmap?) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(220.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Task visual",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = Icons.Default.Image,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.alpha(0.3f)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("West Haven, CT", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(
+                        "No Image",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.alpha(0.5f),
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "The main pipe in my basement has started leaking. Need someone with plumbing expertise to help shut it off and patch it.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                )
             }
         }
+    }
+}
+
+@Composable
+private fun TaskDetails(title: String, location: String, description: String) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            Icon(
+                Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = location,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1,
+                modifier = Modifier.basicMarquee()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            lineHeight = 20.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        )
     }
 }
 
@@ -112,6 +205,16 @@ fun HelpTaskCard() {
 @Composable
 fun HomeViewPreview() {
     CommunityHelpTheme {
-        HomeView()
+        // Mock data for previewing the UI without Firebase
+        val mockRequest = HelpRequest(
+            title = "Help with Trash Removal",
+            description = "Need someone to help me remove trash from the backyard.",
+            location = "West Haven, CT",
+            image = ""
+        )
+
+        Column(Modifier.padding(16.dp)) {
+            HelpTaskCard(request = mockRequest)
+        }
     }
 }
