@@ -7,18 +7,28 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
+import com.unh.communityhelp.mainmenu.api.PointsApi
+import com.unh.communityhelp.mainmenu.api.PointsRequest
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MyTasksViewModel : ViewModel() {
+    private val pointsApi = Retrofit.Builder()
+        .baseUrl("https://your-points-api.com/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(PointsApi::class.java)
     private val db = Firebase.firestore
     private val auth = Firebase.auth
 
@@ -122,6 +132,27 @@ class MyTasksViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                var pointsAwarded = 10L // Default fallback
+
+                try {
+                    val response = pointsApi.calculatePoints(
+                        PointsRequest(
+                            title = request.title,
+                            description = request.description,
+                            timestamp = request.createdAt ?: Timestamp.now(),
+                            rating = rating,
+                            comment = comment,
+                            location = request.location
+                        )
+                    )
+                    if (response.isSuccessful) {
+                        pointsAwarded = response.body()?.points ?: 10L
+                    }
+                } catch (e: Exception) {
+                    Log.e("MyTasksVM", "API Points Error: ${e.message}")
+                    // We continue with the fallback points so the user doesn't lose credit
+                }
+
                 // Save the Review (Do this first so the data exists somewhere!)
                 val reviewData = hashMapOf(
                     "taskId" to request.id,
@@ -139,16 +170,16 @@ class MyTasksViewModel : ViewModel() {
 
                 // Remove reference from Helper's profile
                 db.collection("users").document(helperId)
-                    .update("acceptedTasks", FieldValue.arrayRemove(taskRef)).await()
-
-                // Update Helper's stats (Since the task is being deleted, update stats now)
-                db.collection("users").document(helperId)
-                    .update("completedTasksCount", FieldValue.increment(1)).await()
+                    .update(
+                        "acceptedTasks", FieldValue.arrayRemove(taskRef),
+                        "completedTasksCount", FieldValue.increment(1),
+                        "points", FieldValue.increment(pointsAwarded)
+                    ).await()
 
                 // DELETE the actual task document from the geolocation collection
                 taskRef.delete().await()
 
-                fetchUserTasks() // Refresh local state
+                fetchUserTasks()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("MyTasksVM", "Hard Delete failed: ${e.message}")
