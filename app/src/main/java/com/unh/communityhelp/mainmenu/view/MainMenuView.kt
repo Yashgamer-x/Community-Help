@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,11 +34,12 @@ fun MainMenuView(onLogout: () -> Unit) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
     // Updated lists to include "My Tasks"
-    val titles = listOf("Feed", "Post", "My Tasks", "Profile")
+    val titles = listOf("Feed", "Post", "My Tasks", "Rewards", "Profile")
     val icons = listOf(
         Icons.Default.Home,
         Icons.Default.AddCircle,
         Icons.AutoMirrored.Filled.FormatListBulleted,
+        Icons.Default.EmojiEvents,
         Icons.Default.AccountCircle
     )
 
@@ -52,7 +54,7 @@ fun MainMenuView(onLogout: () -> Unit) {
                     )
                 },
                 actions = {
-                    if (selectedItem == 3) { // Profile is now index 3
+                    if (selectedItem == 4) {
                         IconButton(onClick = onLogout) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -81,8 +83,9 @@ fun MainMenuView(onLogout: () -> Unit) {
             when (selectedItem) {
                 0 -> HomeView()
                 1 -> CreateHelpView()
-                2 -> MyTasksView() // The new view
-                3 -> ProfileView(onLogout = onLogout)
+                2 -> MyTasksView()
+                3 -> RewardsView()
+                4 -> ProfileView(onLogout = onLogout)
             }
         }
     }

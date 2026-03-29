@@ -95,6 +95,9 @@ fun HomeView(
         fusedLocationClient?.let { viewModel.refreshHomeData(context, it) }
     }
 
+    // Safely get the current user ID only if not in inspection mode to avoid Firebase initialization errors
+    val currentUserId = if (isInspectionMode) null else remember { Firebase.auth.currentUser?.uid }
+
     LaunchedEffect(locationPermissionState.status.isGranted) {
         // Avoid triggering VM data refresh in Preview to prevent Firebase initialization errors
         if (locationPermissionState.status.isGranted && !isInspectionMode) {
@@ -105,8 +108,8 @@ fun HomeView(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             locationPermissionState.status.isGranted -> {
-                // Pass the refresh function to the content
-                HomeContent(viewModel, onRefresh as () -> Unit)
+                // Pass the refresh function and currentUserId to the content
+                HomeContent(viewModel, onRefresh as () -> Unit, currentUserId)
             }
             else -> {
                 LocationPermissionPrompt(
@@ -155,9 +158,9 @@ private fun LocationPermissionPrompt(onGrantClick: () -> Unit) {
 @Composable
 private fun HomeContent(
     viewModel: HomeViewModel,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    currentUserId: String?
 ) {
-    val currentUserId = Firebase.auth.currentUser?.uid
     val context = LocalContext.current
     val requests = viewModel.helpRequests
     // PullToRefreshBox handles its own state based on the viewModel's isLoading

@@ -1,12 +1,12 @@
 package com.unh.communityhelp.mainmenu.model
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.Exclude
-import android.util.Base64
-import android.graphics.BitmapFactory
 
 data class HelpRequest(
     // 1. Move selfRef to the constructor so .copy() works properly
