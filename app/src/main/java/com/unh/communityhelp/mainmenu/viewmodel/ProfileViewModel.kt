@@ -5,23 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import com.unh.communityhelp.mainmenu.model.UserProfile
+import com.unh.communityhelp.mainmenu.state.ProfileState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-
-data class UserProfile(
-    val fullName: String = "",
-    val username: String = "",
-    val phoneNumber: String = "",
-    val expertiseList: List<String> = emptyList()
-)
-
-sealed class ProfileState {
-    object Loading : ProfileState()
-    data class Success(val profile: UserProfile) : ProfileState()
-    data class Error(val message: String) : ProfileState()
-}
 
 class ProfileViewModel : ViewModel() {
     private val auth by lazy { Firebase.auth }

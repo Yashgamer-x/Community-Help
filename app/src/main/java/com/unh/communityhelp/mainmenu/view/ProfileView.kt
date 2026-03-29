@@ -38,9 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.unh.communityhelp.mainmenu.viewmodel.ProfileState
+import com.unh.communityhelp.mainmenu.model.UserProfile
+import com.unh.communityhelp.mainmenu.state.ProfileState
 import com.unh.communityhelp.mainmenu.viewmodel.ProfileViewModel
-import com.unh.communityhelp.mainmenu.viewmodel.UserProfile
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
