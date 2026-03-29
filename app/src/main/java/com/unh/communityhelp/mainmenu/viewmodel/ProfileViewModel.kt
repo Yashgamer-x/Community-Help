@@ -33,7 +33,8 @@ class ProfileViewModel : ViewModel() {
                         fullName = doc.getString("fullName") ?: "",
                         username = doc.getString("username") ?: "",
                         phoneNumber = doc.getString("phoneNumber") ?: "",
-                        expertiseList = doc.get("expertiseList") as? List<String> ?: emptyList()
+                        expertiseList = doc.get("expertiseList") as? List<String> ?: emptyList(),
+                        points = doc.getLong("points") ?: 0L
                     )
                     _uiState.value = ProfileState.Success(profile)
                 }
