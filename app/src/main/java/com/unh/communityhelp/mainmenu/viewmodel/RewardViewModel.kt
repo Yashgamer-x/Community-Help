@@ -15,7 +15,7 @@ import com.unh.communityhelp.mainmenu.model.Reward
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class RewardsViewModel : ViewModel() {
+class RewardsViewModel: ViewModel() {
     private val auth by lazy { Firebase.auth }
     private val db by lazy { Firebase.firestore }
 

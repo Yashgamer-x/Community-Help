@@ -13,7 +13,8 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import com.unh.communityhelp.mainmenu.api.PointsApi
-import com.unh.communityhelp.mainmenu.api.PointsRequest
+import com.unh.communityhelp.mainmenu.api.PointsApiRequest
+import com.unh.communityhelp.mainmenu.api.toIso8601String
 import com.unh.communityhelp.mainmenu.model.HelpRequest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -25,7 +26,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MyTasksViewModel : ViewModel() {
     private val pointsApi = Retrofit.Builder()
-        .baseUrl("https://your-points-api.com/")
+        .baseUrl("https://point-estimator-one.vercel.app/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(PointsApi::class.java)
@@ -135,22 +136,21 @@ class MyTasksViewModel : ViewModel() {
                 var pointsAwarded = 10L // Default fallback
 
                 try {
-                    val response = pointsApi.calculatePoints(
-                        PointsRequest(
-                            title = request.title,
-                            description = request.description,
-                            timestamp = request.createdAt ?: Timestamp.now(),
-                            rating = rating,
-                            comment = comment,
-                            location = request.location
-                        )
+                    val apiRequest = PointsApiRequest(
+                        location = request.location,
+                        stars = rating,
+                        description = request.description,
+                        title = request.title,
+                        timestamp = request.createdAt?.toIso8601String() ?: Timestamp.now().toIso8601String()
                     )
+                    val response = pointsApi.calculatePoints(apiRequest)
+                    Log.d("MyTasksVM", "API Points Success: ${response.body()}")
                     if (response.isSuccessful) {
+                        Log.d("MyTasksVM", "API Points Success: ${response.body()?.points}")
                         pointsAwarded = response.body()?.points ?: 10L
                     }
                 } catch (e: Exception) {
                     Log.e("MyTasksVM", "API Points Error: ${e.message}")
-                    // We continue with the fallback points so the user doesn't lose credit
                 }
 
                 // Save the Review (Do this first so the data exists somewhere!)
