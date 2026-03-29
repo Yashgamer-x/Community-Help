@@ -9,8 +9,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,10 +26,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,8 +53,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,11 +62,12 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.unh.communityhelp.auth.signup.category.Expertise
 import com.unh.communityhelp.mainmenu.view.asset.LocationSection
 import com.unh.communityhelp.mainmenu.viewmodel.CreateHelpViewModel
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
     var title by remember { mutableStateOf("") }
@@ -78,20 +84,45 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
         Text(text = "Request Help", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- Extracted Camera Component ---
         CameraActionSection(
             capturedImage = viewModel.capturedImage,
             onImageCaptured = { viewModel.capturedImage = it },
             onRemoveImage = { viewModel.clearImage() }
         )
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- Category Selection ---
+        Text(
+            text = "Select Category",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.fillMaxWidth(),
+            fontWeight = FontWeight.Bold
+        )
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Expertise.entries.forEach { expertise ->
+                val isSelected = viewModel.selectedCategory == expertise
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { viewModel.selectedCategory = expertise },
+                    label = { Text(expertise.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    leadingIcon = if (isSelected) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                    } else null
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Form Fields ---
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("What do you need help with?") },
+            label = { Text("Title") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -101,21 +132,15 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Detailed Description") },
+            label = { Text("Description") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Default,
-                capitalization = KeyboardCapitalization.Sentences
-            )
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LocationSection(
-            viewModel = viewModel,
-            context = context
-        )
+        LocationSection(viewModel = viewModel, context = context)
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -125,32 +150,31 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
                     image = viewModel.capturedImage,
                     title = title,
                     description = description,
-                    location = viewModel.cityName,
                     onSuccess = {
-                        Toast.makeText(
-                            context,
-                             viewModel.statusMessage,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        title = ""
-                        description = ""
+                        Toast.makeText(context, viewModel.statusMessage, Toast.LENGTH_SHORT).show()
+                        title = ""; description = ""
                         viewModel.clearImage()
                     }
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
             enabled = title.isNotBlank() && description.isNotBlank() &&
-                    viewModel.capturedImage != null && !viewModel.isSubmitting
+                    viewModel.cityName.isNotBlank() && !viewModel.isSubmitting
         ) {
             if (viewModel.isSubmitting) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
             } else {
                 Text("Post Help Request")
             }
+        }
+
+        if (viewModel.statusMessage.isNotEmpty()) {
+            Text(
+                text = viewModel.statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 }
