@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -58,6 +59,7 @@ import com.unh.communityhelp.mainmenu.model.HelpRequest
 import com.unh.communityhelp.mainmenu.model.decodeImage
 import com.unh.communityhelp.mainmenu.view.asset.RatingDialog
 import com.unh.communityhelp.mainmenu.viewmodel.MyTasksViewModel
+import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
 fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
@@ -320,5 +322,13 @@ private fun TaskDetails(title: String, location: String, description: String) {
             lineHeight = 20.sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
         )
+    }
+}
+
+@Preview
+@Composable
+fun MyTasksViewPreview() {
+    CommunityHelpTheme{
+        MyTasksView()
     }
 }

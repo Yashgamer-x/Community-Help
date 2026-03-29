@@ -30,8 +30,8 @@ class MyTasksViewModel : ViewModel() {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(PointsApi::class.java)
-    private val db = Firebase.firestore
-    private val auth = Firebase.auth
+    private val auth by lazy { Firebase.auth }
+    private val db by lazy { Firebase.firestore }
 
     var createdTasks by mutableStateOf<List<HelpRequest>>(emptyList())
     var acceptedTasks by mutableStateOf<List<HelpRequest>>(emptyList())
