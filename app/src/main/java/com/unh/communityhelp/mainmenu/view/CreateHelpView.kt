@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,51 +65,14 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (viewModel.capturedImage != null) {
-            // IMAGE PREVIEW BOX
-            Box(contentAlignment = Alignment.TopEnd) {
-                Image(
-                    bitmap = viewModel.capturedImage!!.asImageBitmap(),
-                    contentDescription = "Captured help request image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
-                )
-                // "Retake" button
-                IconButton(
-                    onClick = { viewModel.clearImage() },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.5f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove",
-                            tint = Color.White,
-                            modifier = Modifier.padding(4.dp)
-                        )
-                    }
-                }
-            }
+        val image = viewModel.capturedImage
+        if (image != null) {
+            ImagePreview(
+                bitmap = image.asImageBitmap(),
+                onRemove = { viewModel.clearImage() }
+            )
         } else {
-            // CAMERA BUTTON (The Placeholder)
-            OutlinedButton(
-                onClick = { cameraLauncher.launch() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(imageVector = Icons.Default.AddAPhoto, contentDescription = null)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Take a Photo")
-                }
-            }
+            CameraPlaceholder(onLaunchCamera = { cameraLauncher.launch() })
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -148,6 +114,71 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
             shape = MaterialTheme.shapes.medium
         ) {
             Text("Post Help Request")
+        }
+    }
+}
+
+/**
+ * Displays the captured image with an overlay button to remove/retake it.
+ */
+@Composable
+fun ImagePreview(bitmap: ImageBitmap, onRemove: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(MaterialTheme.shapes.medium),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = "Help request photo",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Small floating 'X' button
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                tonalElevation = 4.dp
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove Photo",
+                    modifier = Modifier.padding(4.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The initial button shown when no photo has been taken.
+ */
+@Composable
+fun CameraPlaceholder(onLaunchCamera: () -> Unit) {
+    OutlinedButton(
+        onClick = onLaunchCamera,
+        modifier = Modifier.fillMaxWidth().height(150.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.AddAPhoto,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text("Take a Photo", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
