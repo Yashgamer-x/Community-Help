@@ -14,6 +14,8 @@ import com.google.firebase.firestore.firestore
 import com.unh.communityhelp.auth.signup.category.Expertise
 import com.unh.communityhelp.mainmenu.api.SpamApi
 import com.unh.communityhelp.mainmenu.api.SpamRequest
+import com.unh.communityhelp.mainmenu.api.ToxicityApi
+import com.unh.communityhelp.mainmenu.api.ToxicityRequest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import retrofit2.Retrofit
@@ -38,6 +40,12 @@ class CreateHelpViewModel : ViewModel() {
         .build()
         .create(SpamApi::class.java)
 
+    private val toxicityApi = Retrofit.Builder()
+        .baseUrl("https://toxicity-api-project.vercel.app/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(ToxicityApi::class.java)
+
     fun createHelpRequest(
         image: Bitmap?,
         title: String,
@@ -52,8 +60,18 @@ class CreateHelpViewModel : ViewModel() {
                 val response = spamApi.checkSpam(SpamRequest(title, description))
 
                 if (response.isSuccessful && response.body()?.status?.lowercase() == "good") {
-                    statusMessage = "Verified! Posting..."
-                    saveToFirestore(image, title, description, onSuccess)
+                    statusMessage = "Checking safety!! PLEASE WAIT...."
+
+                    val toxicityResponse = toxicityApi.checkSpam(ToxicityRequest(title, description))
+
+                    if(toxicityResponse.isSuccessful && toxicityResponse.body()?.status?.lowercase() == "good"){
+                        statusMessage = "Posting to Community..."
+                        saveToFirestore(image, title, description, onSuccess)
+                    } else {
+                        statusMessage = "Post rejected: Content flagged as toxic."
+                        isSubmitting = false
+                    }
+
                 } else {
                     statusMessage = "Post rejected: Content flagged as spam."
                     isSubmitting = false
