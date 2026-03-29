@@ -182,7 +182,7 @@ fun HelpTaskCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            UserHeader(userName = "Helper Needed") // You can pass request.authorName if you add it later
+            UserHeader(userName = request.authorName)
 
             TaskImage(bitmap = imageBitmap)
 

@@ -11,6 +11,7 @@ data class HelpRequest(
     val description: String = "",
     val image: String = "", // Matches your (string) image field
     val location: String = "",
+    var authorName: String = "Loading...",
     val createdAt: Timestamp? = null
 )
 

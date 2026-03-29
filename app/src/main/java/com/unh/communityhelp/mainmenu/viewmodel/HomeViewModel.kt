@@ -60,6 +60,8 @@ class HomeViewModel : ViewModel() {
 
     private suspend fun fetchTasksByLocationAndSkills(city: String, expertise: List<String>) {
         val allTasks = mutableListOf<HelpRequest>()
+        val userCache = mutableMapOf<String, String>() // Cache: authorId -> username
+
         try {
             for (category in expertise) {
                 val snapshot = db.collection("geolocation")
@@ -75,9 +77,27 @@ class HomeViewModel : ViewModel() {
                 }
                 allTasks.addAll(tasks)
             }
-            // Final Sort: Newest requests across all matched categories first
-            helpRequests = allTasks.sortedByDescending { it.createdAt }
-            Log.d("Firestore", "Fetch Success: ${helpRequests} tasks found")
+
+            // --- NEW: Fetch Usernames for each authorId ---
+            val tasksWithNames = allTasks.map { task ->
+                if (task.authorId.isNotEmpty()) {
+                    // Check cache first, otherwise fetch from Firestore
+                    val name = userCache[task.authorId] ?: try {
+                        val userDoc = db.collection("users").document(task.authorId).get().await()
+                        val fetchedName = userDoc.getString("username") ?: "Unknown User"
+                        userCache[task.authorId] = fetchedName // Save to cache
+                        fetchedName
+                    } catch (e: Exception) {
+                        "Unknown User"
+                    }
+                    task.copy(authorName = name)
+                } else {
+                    task.copy(authorName = "Anonymous")
+                }
+            }
+
+            helpRequests = tasksWithNames.sortedByDescending { it.createdAt }
+
         } catch (e: Exception) {
             Log.e("Firestore", "Fetch Error: ${e.message}")
         } finally {
