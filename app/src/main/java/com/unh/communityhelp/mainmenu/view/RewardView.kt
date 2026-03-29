@@ -25,6 +25,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,15 +37,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unh.communityhelp.mainmenu.model.Reward
 import com.unh.communityhelp.mainmenu.viewmodel.RewardsViewModel
+import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
 fun RewardsView(viewModel: RewardsViewModel = viewModel()) {
     var showSuccessDialog by remember { mutableStateOf(false) }
     var lastRedeemedShop by remember { mutableStateOf("") }
+
+    val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(Unit) { viewModel.fetchRewardsData() }
 
@@ -90,25 +96,35 @@ fun RewardsView(viewModel: RewardsViewModel = viewModel()) {
         )
         Spacer(Modifier.height(12.dp))
 
-        if (viewModel.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(viewModel.availableRewards) { reward ->
-                    RewardItemCard(
-                        reward = reward,
-                        currentPoints = viewModel.userPoints,
-                        onRedeem = {
-                            // Pass the specific reward to the ViewModel
-                            viewModel.redeemReward(reward) {
-                                lastRedeemedShop = reward.businessName
-                                showSuccessDialog = true
+
+        PullToRefreshBox(
+            state = pullToRefreshState,
+            isRefreshing = viewModel.isLoading,
+            onRefresh = { viewModel.fetchRewardsData() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (viewModel.availableRewards.isEmpty() && !viewModel.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No rewards available right now.", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(viewModel.availableRewards) { reward ->
+                        RewardItemCard(
+                            reward = reward,
+                            currentPoints = viewModel.userPoints,
+                            onRedeem = {
+                                viewModel.redeemReward(reward) {
+                                    lastRedeemedShop = reward.businessName
+                                    showSuccessDialog = true
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -223,5 +239,13 @@ fun RewardItemCard(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RewardsViewPreview(){
+    CommunityHelpTheme{
+        RewardsView()
     }
 }
