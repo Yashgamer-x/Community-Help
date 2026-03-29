@@ -57,18 +57,43 @@ class MyTasksViewModel : ViewModel() {
     }
 
     /**
-     * Fix: Wrapped in coroutineScope to provide a receiver for 'async'
+     * Fetches actual HelpRequest objects from a list of Firestore References
+     * AND fetches the author's username for each task.
      */
     private suspend fun fetchTasksFromRefs(refs: List<DocumentReference>): List<HelpRequest> = coroutineScope {
-        refs.map { ref ->
+        // 1. Fetch all Task Snapshots in parallel
+        val taskSnapshots = refs.map { ref ->
             async {
-                try {
-                    val snapshot = ref.get().await()
-                    // Convert snapshot to HelpRequest and inject the ID
-                    snapshot.toObject(HelpRequest::class.java)?.copy(id = snapshot.id)
-                } catch (e: Exception) {
-                    Log.e("MyTasksVM", "Failed to fetch single ref: ${e.message}")
-                    null
+                try { ref.get().await() } catch (e: Exception) { null }
+            }
+        }.awaitAll().filterNotNull()
+
+        // 2. Identify unique author IDs to avoid redundant fetches
+        val authorCache = mutableMapOf<String, String>()
+
+        // 3. Process each task and resolve the username
+        taskSnapshots.map { snapshot ->
+            async {
+                val task = snapshot.toObject(HelpRequest::class.java)?.copy(id = snapshot.id)
+
+                if (task != null && task.authorId.isNotEmpty()) {
+                    // Check if we already fetched this username in this batch
+                    val username = authorCache[task.authorId] ?: try {
+                        val userDoc = db.collection("users")
+                            .document(task.authorId)
+                            .get()
+                            .await()
+                        val name = userDoc.getString("username") ?: "Unknown User"
+                        authorCache[task.authorId] = name
+                        name
+                    } catch (e: Exception) {
+                        "Unknown User"
+                    }
+
+                    // Map the name back to the HelpRequest
+                    task.copy(authorName = username)
+                } else {
+                    task
                 }
             }
         }.awaitAll().filterNotNull().sortedByDescending { it.createdAt }

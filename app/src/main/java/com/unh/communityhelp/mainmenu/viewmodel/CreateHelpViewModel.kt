@@ -72,16 +72,14 @@ class CreateHelpViewModel : ViewModel() {
         onSuccess: () -> Unit
     ) {
         val db = Firebase.firestore
-        val userId = Firebase.auth.currentUser?.uid ?: "Anonymous"
+        val userId = Firebase.auth.currentUser?.uid ?: return // Safety check: need a real UID
 
-        // 1. Prepare Image String
         val imageString = bitmap?.let {
             val outputStream = ByteArrayOutputStream()
             it.compress(Bitmap.CompressFormat.JPEG, 50, outputStream)
             Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
         } ?: ""
 
-        // 2. Prepare Data
         val requestData = hashMapOf(
             "authorId" to userId,
             "title" to title,
@@ -93,13 +91,19 @@ class CreateHelpViewModel : ViewModel() {
         )
 
         try {
-            // Path: geolocation/{cityName}/categories/{categoryName}/help_requests
-            db.collection("geolocation")
+            // Create the Help Request document and get its reference
+            val newTaskRef = db.collection("geolocation")
                 .document(cityName)
                 .collection("categories")
                 .document(selectedCategory.name)
                 .collection("help_requests")
                 .add(requestData)
+                .await() // .add() returns a DocumentReference after completion
+
+            // Add this specific reference to the user's 'createdTasks' array
+            db.collection("users")
+                .document(userId)
+                .update("createdTasks", FieldValue.arrayUnion(newTaskRef))
                 .await()
 
             isSubmitting = false
