@@ -37,6 +37,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +65,8 @@ import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
 @Composable
 fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
+
+    val pullToRefreshState = rememberPullToRefreshState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Created", "Accepted")
 
@@ -99,31 +103,32 @@ fun MyTasksView(viewModel: MyTasksViewModel = viewModel()) {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                // Determine which list to show
-                val tasks = when (selectedTabIndex) {
-                    0 -> viewModel.createdTasks
-                    else -> viewModel.acceptedTasks
-                }
+        PullToRefreshBox(
+            state = pullToRefreshState,
+            isRefreshing = viewModel.isLoading, // Syncs visual spinner with ViewModel state
+            onRefresh = { viewModel.fetchUserTasks() }, // Action to perform on pull
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Determine which list to show
+            val tasks = when (selectedTabIndex) {
+                0 -> viewModel.createdTasks
+                else -> viewModel.acceptedTasks
+            }
 
-                if (tasks.isEmpty()) {
-                    EmptyStateMessage(tabs[selectedTabIndex])
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(tasks, key = { it.id }) { task ->
-                            TaskItemRow(
-                                task = task,
-                                tabIndex = selectedTabIndex,
-                                viewModel = viewModel
-                            )
-                        }
+            if (tasks.isEmpty() && !viewModel.isLoading) {
+                EmptyStateMessage(tabs[selectedTabIndex])
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(tasks, key = { it.id }) { task ->
+                        TaskItemRow(
+                            task = task,
+                            tabIndex = selectedTabIndex,
+                            viewModel = viewModel
+                        )
                     }
                 }
             }
