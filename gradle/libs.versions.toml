@@ -1,5 +1,6 @@
 [versions]
 agp = "9.0.1"
+converterGson = "3.0.0"
 coreKtx = "1.18.0"
 firebaseBom = "34.11.0"
 junit = "4.13.2"
@@ -13,10 +14,12 @@ materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.7"
 firebaseAuthKtx = "24.0.1"
 playServicesLocation = "21.3.0"
+retrofit = "3.0.0"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -35,6 +38,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

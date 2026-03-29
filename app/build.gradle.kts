@@ -54,6 +54,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation(libs.play.services.location)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

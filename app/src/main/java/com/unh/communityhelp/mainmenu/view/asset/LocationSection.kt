@@ -138,7 +138,6 @@ private fun fetchCurrentLocation(
                         val streetNumber = address.subThoroughfare ?: "" // e.g., "123"
                         val streetName = address.thoroughfare ?: ""     // e.g., "Main St"
                         val city = address.locality ?: ""               // e.g., "West Haven"
-
                         // Cleanly formatting the string
                         val fullAddress = if (streetName.isNotEmpty()) {
                             "$streetNumber $streetName, $city".trim()
@@ -146,7 +145,7 @@ private fun fetchCurrentLocation(
                             // Fallback if street name isn't found (e.g., rural areas/parks)
                             address.getAddressLine(0) ?: "$city, ${address.adminArea}"
                         }
-
+                        viewModel.cityName = city
                         viewModel.locationAddress = fullAddress
                     }
                     viewModel.isFetchingLocation = false

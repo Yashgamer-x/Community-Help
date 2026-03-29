@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
@@ -65,6 +66,7 @@ import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -112,13 +114,30 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
 
         LocationSection(
             viewModel = viewModel,
-            context = LocalContext.current
+            context = context
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /* Call your submit function here */ },
+            onClick = {
+                viewModel.createHelpRequest(
+                    image = viewModel.capturedImage,
+                    title = title,
+                    description = description,
+                    location = viewModel.cityName,
+                    onSuccess = {
+                        Toast.makeText(
+                            context,
+                             viewModel.statusMessage,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        title = ""
+                        description = ""
+                        viewModel.clearImage()
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
             enabled = title.isNotBlank() && description.isNotBlank() &&
