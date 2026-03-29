@@ -1,5 +1,9 @@
 package com.unh.communityhelp.mainmenu.view
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
@@ -37,51 +41,52 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.unh.communityhelp.mainmenu.viewmodel.CreateHelpViewModel
 import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        viewModel.capturedImage = bitmap
-    }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Request Help", style = MaterialTheme.typography.headlineMedium)
-
         Spacer(modifier = Modifier.height(24.dp))
 
-        val image = viewModel.capturedImage
-        if (image != null) {
-            ImagePreview(
-                bitmap = image.asImageBitmap(),
-                onRemove = { viewModel.clearImage() }
-            )
-        } else {
-            CameraPlaceholder(onLaunchCamera = { cameraLauncher.launch() })
-        }
+        // --- Extracted Camera Component ---
+        CameraActionSection(
+            capturedImage = viewModel.capturedImage,
+            onImageCaptured = { viewModel.capturedImage = it },
+            onRemoveImage = { viewModel.clearImage() }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // --- Form Fields ---
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
             label = { Text("What do you need help with?") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -96,9 +101,8 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Location Button
         OutlinedButton(
-            onClick = { /* Get Current Location */ },
+            onClick = { /* TODO: Get Current Location */ },
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.MyLocation, contentDescription = null)
@@ -109,13 +113,73 @@ fun CreateHelpView(viewModel: CreateHelpViewModel = viewModel()) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /* Submit to Firestore */ },
+            onClick = { /* TODO: Submit to Firestore */ },
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
+            enabled = title.isNotBlank() && description.isNotBlank() && viewModel.capturedImage != null
         ) {
             Text("Post Help Request")
         }
     }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun CameraActionSection(
+    capturedImage: android.graphics.Bitmap?,
+    onImageCaptured: (android.graphics.Bitmap?) -> Unit,
+    onRemoveImage: () -> Unit
+) {
+    val cameraPermissionState = if (LocalInspectionMode.current) null else rememberPermissionState(android.Manifest.permission.CAMERA)
+    var showRationale by remember { mutableStateOf(false) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap -> onImageCaptured(bitmap) }
+
+    if (showRationale) {
+        PermissionRationaleDialog(
+            onDismiss = { showRationale = false },
+            onConfirm = {
+                showRationale = false
+                cameraPermissionState?.launchPermissionRequest()
+            }
+        )
+    }
+
+    if (capturedImage != null) {
+        ImagePreview(
+            bitmap = capturedImage.asImageBitmap(),
+            onRemove = onRemoveImage
+        )
+    } else {
+        CameraPlaceholder(onLaunchCamera = {
+            when {
+                cameraPermissionState?.status?.isGranted == true -> cameraLauncher.launch()
+                cameraPermissionState?.status?.shouldShowRationale == true -> showRationale = true
+                else -> cameraPermissionState?.launchPermissionRequest()
+            }
+        })
+    }
+}
+
+
+/**
+ * Friendly dialog explaining why we need the camera.
+ */
+@Composable
+fun PermissionRationaleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Camera Permission Needed") },
+        text = { Text("To show helpers what you need, we need access to your camera to take a photo of the issue.") },
+        confirmButton = {
+            Button(onClick = onConfirm) { Text("Grant Permission") }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 /**
@@ -181,6 +245,13 @@ fun CameraPlaceholder(onLaunchCamera: () -> Unit) {
             Text("Take a Photo", style = MaterialTheme.typography.labelLarge)
         }
     }
+}
+
+fun openAppSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.fromParts("package", context.packageName, null)
+    }
+    context.startActivity(intent)
 }
 
 @Preview(showBackground = true)

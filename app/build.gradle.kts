@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(platform(libs.firebase.bom))
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
