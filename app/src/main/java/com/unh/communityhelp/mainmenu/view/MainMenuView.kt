@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,8 +35,15 @@ import com.unh.communityhelp.ui.theme.CommunityHelpTheme
 @Composable
 fun MainMenuView(onLogout: () -> Unit) {
     var selectedItem by remember { mutableIntStateOf(0) }
-    val titles = listOf("Community Feed", "Post a Request", "My Profile")
-    val icons = listOf(Icons.Default.Home, Icons.Default.AddCircle, Icons.Default.AccountCircle)
+
+    // Updated lists to include "My Tasks"
+    val titles = listOf("Feed", "Post", "My Tasks", "Profile")
+    val icons = listOf(
+        Icons.Default.Home,
+        Icons.Default.AddCircle,
+        Icons.AutoMirrored.Filled.FormatListBulleted,
+        Icons.Default.AccountCircle
+    )
 
     Scaffold(
         topBar = {
@@ -47,8 +56,7 @@ fun MainMenuView(onLogout: () -> Unit) {
                     )
                 },
                 actions = {
-                    // Show logout only on Profile tab
-                    if (selectedItem == 2) {
+                    if (selectedItem == 3) { // Profile is now index 3
                         IconButton(onClick = onLogout) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -57,29 +65,17 @@ fun MainMenuView(onLogout: () -> Unit) {
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                }
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                tonalElevation = 8.dp
-            ) {
+            NavigationBar {
                 titles.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = { Icon(icons[index], contentDescription = item) },
                         label = { Text(item) },
                         selected = selectedItem == index,
-                        onClick = { selectedItem = index },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        onClick = { selectedItem = index }
                     )
                 }
             }
@@ -89,7 +85,8 @@ fun MainMenuView(onLogout: () -> Unit) {
             when (selectedItem) {
                 0 -> HomeView()
                 1 -> CreateHelpView()
-                2 -> ProfileView(onLogout = onLogout)
+                2 -> MyTasksView() // The new view
+                3 -> ProfileView(onLogout = onLogout)
             }
         }
     }
